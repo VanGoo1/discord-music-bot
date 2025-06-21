@@ -2,25 +2,36 @@ import discord
 from discord.ext import commands
 import yt_dlp
 import asyncio
-import os
-
 
 ytdl_format_options = {
-    "format": "bestaudio/best",
+    "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
     "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
     "restrictfilenames": True,
     "noplaylist": False,
     "nocheckcertificate": True,
-    "ignoreerrors": False,
+    "ignoreerrors": True,
     "logtostderr": False,
     "quiet": True,
     "no_warnings": True,
     "default_search": "auto",
     "source_address": "0.0.0.0",
-    "extractor_args": {"soundcloud": {"client_id": None}},
     "http_chunk_size": 10485760,
     "retries": 5,
     "socket_timeout": 60,
+    "extract_flat": False,
+    "writethumbnail": False,
+    "writeinfojson": False,
+    "writesubtitles": False,
+    "http_headers": {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-us,en;q=0.5",
+        "Accept-Encoding": "gzip,deflate",
+        "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.7",
+        "Keep-Alive": "300",
+        "Connection": "keep-alive",
+    },
+    "age_limit": 99,
 }
 
 ffmpeg_options = {
@@ -45,14 +56,19 @@ class MusicCog(commands.Cog):
     async def play(self, ctx, *, url):
         voice_channel = ctx.author.voice.channel if ctx.author.voice else None
         if not voice_channel:
-            return await ctx.send("Ти не в голосовому чаті")
+            return await ctx.send("Ти не у войсі")
         if not ctx.voice_client:
             await voice_channel.connect()
 
         loop = asyncio.get_event_loop()
-        data = await loop.run_in_executor(
-            None, lambda: ytdl.extract_info(url, download=False)
-        )
+        try:
+            data = await loop.run_in_executor(
+                None, lambda: ytdl.extract_info(url, download=False)
+            )
+        except yt_dlp.utils.DownloadError as e:
+            return await ctx.send(f"Помилка завантаження: {e}")
+        except Exception as e:
+            return await ctx.send(f"Неочікувана помилка: {e}")
         if data is None:
             return await ctx.send("не вдалося отримати інфу про трек.")
 
